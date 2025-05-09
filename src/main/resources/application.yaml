@@ -1,0 +1,18 @@
+#server:
+#  port: 3030
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  application:
+    name: blog-monitor
+  # temporal specific configs
+  temporal:
+    namespace: default
+    connection:
+      target: 127.0.0.1:7233
+    workersAutoDiscovery:
+      packages: nz.co.mycompany.blog.monitor.workflow, nz.co.mycompany.blog.monitor.activity
+# specific for samples
+samples:
+  data:
+    language: english
