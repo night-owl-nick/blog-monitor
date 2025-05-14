@@ -7,5 +7,5 @@ import io.temporal.workflow.WorkflowMethod;
 public interface MonitorWorkflow {
 
     @WorkflowMethod
-    String monitor();
+    void monitor();
 }

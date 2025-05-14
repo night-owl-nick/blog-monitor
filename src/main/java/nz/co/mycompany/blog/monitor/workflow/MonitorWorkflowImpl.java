@@ -3,8 +3,11 @@ package nz.co.mycompany.blog.monitor.workflow;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.spring.boot.WorkflowImpl;
 import io.temporal.workflow.Workflow;
-import nz.co.mycompany.blog.monitor.Scheduler;
+import nz.co.mycompany.blog.monitor.activity.ClassifyTextActivity;
+import nz.co.mycompany.blog.monitor.model.Topic;
+import nz.co.mycompany.blog.monitor.scheduler.Scheduler;
 import nz.co.mycompany.blog.monitor.activity.GetBlogActivity;
+import nz.co.mycompany.blog.monitor.activity.SummariseTextActivity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,9 +23,23 @@ public class MonitorWorkflowImpl implements MonitorWorkflow {
                 GetBlogActivity.class,
                     ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofSeconds(2)).build());
 
+    private SummariseTextActivity summariseTextActivity =
+            Workflow.newActivityStub(
+                    SummariseTextActivity.class,
+                    ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofSeconds(30)).build());
+
+    private ClassifyTextActivity classifyTextActivity =
+            Workflow.newActivityStub(
+                    ClassifyTextActivity.class,
+                    ActivityOptions.newBuilder().setStartToCloseTimeout(Duration.ofSeconds(30)).build());
+
     @Override
-    public String monitor() {
+    public void monitor() {
         log.info("inside monitor");
-        return getBlogActivity.getText();
+        String text = getBlogActivity.getText();
+        String sanitisedText = text.replace("\n", " ");
+        String summary = summariseTextActivity.getSummary(sanitisedText);
+        Topic topic = classifyTextActivity.getTopic(sanitisedText);
+        log.info("monitor successful");
     }
 }

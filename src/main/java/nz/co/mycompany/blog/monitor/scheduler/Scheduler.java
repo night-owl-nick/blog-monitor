@@ -1,4 +1,4 @@
-package nz.co.mycompany.blog.monitor;
+package nz.co.mycompany.blog.monitor.scheduler;
 
 import io.temporal.api.enums.v1.ScheduleOverlapPolicy;
 import io.temporal.client.WorkflowClient;
