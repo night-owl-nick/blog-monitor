@@ -1,11 +1,10 @@
 package nz.co.mycompany.blog.monitor.activity;
 
 import io.temporal.spring.boot.ActivityImpl;
+import lombok.extern.slf4j.Slf4j;
 import nz.co.mycompany.blog.monitor.scheduler.Scheduler;
 import org.json.JSONObject;
 import org.json.JSONPointer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
 import software.amazon.awssdk.core.SdkBytes;
@@ -14,11 +13,10 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
+@Slf4j
 @Component
 @ActivityImpl(taskQueues = Scheduler.TASK_QUEUE)
 public class SummariseTextActivityImpl implements SummariseTextActivity {
-
-    private static final Logger log = LoggerFactory.getLogger(SummariseTextActivityImpl.class);
 
     @Override
     public String getSummary(String text) {

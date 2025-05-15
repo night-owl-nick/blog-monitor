@@ -4,9 +4,8 @@ import io.temporal.api.enums.v1.ScheduleOverlapPolicy;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.client.schedules.*;
+import lombok.extern.slf4j.Slf4j;
 import nz.co.mycompany.blog.monitor.workflow.MonitorWorkflow;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -15,6 +14,7 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.Collections;
 
+@Slf4j
 @Component
 public class Scheduler {
 
@@ -23,8 +23,6 @@ public class Scheduler {
     static final String WORKFLOW_ID = "MonitorWorkflow";
 
     static final String SCHEDULE_ID = "MonitorSchedule";
-
-    private static final Logger log = LoggerFactory.getLogger(Scheduler.class);
 
     @Autowired
     WorkflowClient client;
@@ -35,52 +33,66 @@ public class Scheduler {
     @EventListener(ApplicationReadyEvent.class)
     public void run() throws InterruptedException {
         log.info("inside run");
+        ScheduleHandle handle = null;
+        boolean isScheduleExist = scheduleClient.listSchedules().anyMatch(scheduleListDescription -> {
+            return SCHEDULE_ID.equals(scheduleListDescription.getScheduleId());
+        });
 
-        WorkflowOptions workflowOptions =
-                WorkflowOptions.newBuilder().setWorkflowId(WORKFLOW_ID).setTaskQueue(TASK_QUEUE).build();
+        if (isScheduleExist) {
+            handle = scheduleClient.getHandle(SCHEDULE_ID);
+        } else {
 
-        ScheduleActionStartWorkflow action =
-                ScheduleActionStartWorkflow.newBuilder()
-                        .setWorkflowType(MonitorWorkflow.class)
-                        .setOptions(workflowOptions)
-                        .build();
+            WorkflowOptions workflowOptions =
+                    WorkflowOptions.newBuilder()
+                            .setWorkflowId(WORKFLOW_ID)
+                            .setTaskQueue(TASK_QUEUE)
+                            .setWorkflowRunTimeout(Duration.ofSeconds(30))
+                            .build();
 
-        Schedule schedule =
-                Schedule.newBuilder().setAction(action).setSpec(ScheduleSpec.newBuilder().build()).build();
+            ScheduleActionStartWorkflow action =
+                    ScheduleActionStartWorkflow.newBuilder()
+                            .setWorkflowType(MonitorWorkflow.class)
+                            .setOptions(workflowOptions)
+                            .build();
 
-        ScheduleHandle handle =
-                scheduleClient.createSchedule(SCHEDULE_ID, schedule, ScheduleOptions.newBuilder().build());
+            Schedule schedule =
+                    Schedule.newBuilder().setAction(action).setSpec(ScheduleSpec.newBuilder().build()).build();
 
-        handle.trigger(ScheduleOverlapPolicy.SCHEDULE_OVERLAP_POLICY_ALLOW_ALL);
+            handle =
+                    scheduleClient.createSchedule(SCHEDULE_ID, schedule, ScheduleOptions.newBuilder().build());
 
-        handle.update(
-                (ScheduleUpdateInput input) -> {
-                    Schedule.Builder builder = Schedule.newBuilder(input.getDescription().getSchedule());
+//        handle.trigger(ScheduleOverlapPolicy.SCHEDULE_OVERLAP_POLICY_ALLOW_ALL);
+            handle.trigger(ScheduleOverlapPolicy.SCHEDULE_OVERLAP_POLICY_SKIP);
 
-                    builder.setSpec(
-                            ScheduleSpec.newBuilder()
-                                    // Run the schedule at 5pm on Friday
+            handle.update(
+                    (ScheduleUpdateInput input) -> {
+                        Schedule.Builder builder = Schedule.newBuilder(input.getDescription().getSchedule());
+
+                        builder.setSpec(
+                                ScheduleSpec.newBuilder()
+                                        // Run the schedule at 5pm on Friday
 //                                    .setCalendars(
 //                                            Collections.singletonList(
 //                                                    ScheduleCalendarSpec.newBuilder()
 //                                                            .setHour(Collections.singletonList(new ScheduleRange(17)))
 //                                                            .setDayOfWeek(Collections.singletonList(new ScheduleRange(5)))
 //                                                            .build()))
-                                    // Run the schedule every 60s
-                                    .setIntervals(
-                                            Collections.singletonList(new ScheduleIntervalSpec(Duration.ofSeconds(60))))
-                                    .build());
-                    // Make the schedule paused to demonstrate how to unpause a schedule
-                    builder.setState(
-                            ScheduleState.newBuilder()
-                                    .setPaused(true)
-                                    .setLimitedAction(true)
-                                    .setRemainingActions(3) // MonitorWorkflow is executed 4 times
-                                    .build());
-                    return new ScheduleUpdate(builder.build());
-                });
+                                        // Run the schedule every 60s
+                                        .setIntervals(
+                                                Collections.singletonList(new ScheduleIntervalSpec(Duration.ofSeconds(60))))
+                                        .build());
+                        // Make the schedule paused to demonstrate how to unpause a schedule
+                        builder.setState(
+                                ScheduleState.newBuilder()
+                                        .setPaused(true)
+                                        .setLimitedAction(true)
+                                        .setRemainingActions(3) // MonitorWorkflow is executed 4 times
+                                        .build());
+                        return new ScheduleUpdate(builder.build());
+                    });
 
-        handle.unpause();
+            handle.unpause();
+        }
 
         while (true) {
             ScheduleState state = handle.describe().getSchedule().getState();

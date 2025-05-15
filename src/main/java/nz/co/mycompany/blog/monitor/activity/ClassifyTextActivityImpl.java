@@ -1,6 +1,7 @@
 package nz.co.mycompany.blog.monitor.activity;
 
 import io.temporal.spring.boot.ActivityImpl;
+import lombok.extern.slf4j.Slf4j;
 import nz.co.mycompany.blog.monitor.model.Topic;
 import nz.co.mycompany.blog.monitor.scheduler.Scheduler;
 import org.json.JSONObject;
@@ -15,11 +16,10 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.bedrockruntime.BedrockRuntimeClient;
 import software.amazon.awssdk.services.bedrockruntime.model.InvokeModelResponse;
 
+@Slf4j
 @Component
 @ActivityImpl(taskQueues = Scheduler.TASK_QUEUE)
 public class ClassifyTextActivityImpl implements ClassifyTextActivity {
-
-    private static final Logger log = LoggerFactory.getLogger(ClassifyTextActivityImpl.class);
 
     @Override
     public Topic getTopic(String text) {
@@ -31,7 +31,7 @@ public class ClassifyTextActivityImpl implements ClassifyTextActivity {
         String modelId = "amazon.titan-text-express-v1";
 
         String nativeRequestTemplate = "{ \"inputText\": \"{{prompt}}\" }";
-        String prompt = "The following is text from a blog post \\\"" + text + "\\\" What is the blog post about? Classify it as one of the following and respond only with the classification label: security-related, API-related, community-related, dev-tooling-related, or other";
+        String prompt = "The following is text from a blog post \\\"" + text + "\\\" What is the blog post about? Classify it as one of the following and respond only with the classification labels: security-related, API-related, community-related, dev-tooling-related, or other";
         log.info("prompt = {}", prompt);
         String nativeRequest = nativeRequestTemplate.replace("{{prompt}}", prompt);
         log.info("nativeRequest = {}", nativeRequest);
