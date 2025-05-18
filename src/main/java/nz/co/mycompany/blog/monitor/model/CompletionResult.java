@@ -2,6 +2,11 @@ package nz.co.mycompany.blog.monitor.model;
 
 import lombok.Data;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * A scheduled Workflow Execution may complete with a result up to the maximum blob size (2 MiB by default).
  * However, due to internal limitations, results that are within 1 KiB of this limit cannot be passed to the next execution.
@@ -11,5 +16,7 @@ import lombok.Data;
  */
 @Data
 public class CompletionResult {
-    private Integer count = 0;
+    private int count = 0;
+    private Map<String, ArticleMemento> articleMementos = new HashMap<>();
+    private List<Promotion> promotions = new ArrayList<>();
 }

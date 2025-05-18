@@ -7,9 +7,8 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class Article {
+public class ArticleMemento {
     String id;
     String publishedDateTime;
-    String content;
     String hash;
 }

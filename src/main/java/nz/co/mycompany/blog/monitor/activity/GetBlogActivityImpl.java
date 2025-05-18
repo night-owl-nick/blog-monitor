@@ -2,19 +2,16 @@ package nz.co.mycompany.blog.monitor.activity;
 
 import io.temporal.spring.boot.ActivityImpl;
 import lombok.extern.slf4j.Slf4j;
+import nz.co.mycompany.blog.monitor.model.Article;
 import nz.co.mycompany.blog.monitor.scheduler.Scheduler;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
-//import org.springframework.web.reactive.function.client.WebClient;
-//import reactor.core.publisher.Mono;
 import org.apache.commons.codec.digest.DigestUtils;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -43,30 +40,21 @@ public class GetBlogActivityImpl implements GetBlogActivity {
             """;
 
     @Override
-    public String getText() throws IOException {
-        log.info("inside getText");
+    public List<Article> getArticles() throws IOException {
+        log.info("inside getArticles");
 
         // Integrate with writefreely running locally on port 8282
-//        WebClient client = WebClient.create("http://localhost:8282/");
-//        Mono<String> stringMono = client.get().retrieve().bodyToMono(String.class);
-//        String body = stringMono.block();
-//        log.info("body = {}", body);
-        Map<String, Object> blogs = new HashMap<>();
         String blogUrl = "http://localhost:8282/";
         Document doc = Jsoup.connect(blogUrl).get();
         Elements articles = doc.select("article");
-        for (Element article: articles) {
+        return articles.stream().map(article -> {
             String id = article.attr("id");
-            log.info("id = {}", id);
             String publishedDateTime = article.select("h2 time").attr("datetime");
-            log.info("publishedDateTime = {}", publishedDateTime);
             String content = article.select("div.e-content").text();
-            log.info("content = {}", content);
             String hash = DigestUtils.sha256Hex(content);
-            log.info("hash = {}", hash);
-            Map<String, String> blog = new HashMap<>();
-            blogs.put(id, blogUrl);
-        }
-        return mockText;
+            Article articleModel = new Article(id, publishedDateTime, content, hash);
+            log.info("articleModel = {}", articleModel);
+            return articleModel;
+        }).toList();
     }
 }
